@@ -1,0 +1,55 @@
+services:
+  principal_a:
+    image: "mongo"
+    container_name: principal_a
+    command: --replSet replSet_a --oplogSize 1024 --bind_ip_all
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./principal_a/data:/data/db
+    networks:
+      - mongo-cluster
+
+  secondaire_a_1:
+    image: "mongo"
+    container_name: secondaire_a_1
+    command: --replSet replSet_a --oplogSize 128 --bind_ip_all
+    ports:
+      - "27018:27017"
+    volumes:
+      - ./secondaire_a_1/data:/data/db
+    networks:
+      - mongo-cluster
+  
+  secondaire_a_2:
+    image: "mongo"
+    container_name: secondaire_a_2
+    command: --replSet replSet_a --oplogSize 128 --bind_ip_all
+    ports:
+      - "27019:27017"
+    volumes:
+      - ./secondaire_a_2/data:/data/db
+    networks:
+      - mongo-cluster
+
+  secondaire_a_3:
+    image: "mongo"
+    container_name: secondaire_a_3
+    command: --replSet replSet_a --oplogSize 128 --bind_ip_all
+    ports:
+      - "27020:27017"
+    volumes:
+      - ./secondaire_a_3/data:/data/db
+    networks:
+      - mongo-cluster
+  
+  setup-rs:
+    image: "setup-rs"
+    build: ./setup
+    depends_on:
+      - "principal_a"
+
+  adminmongo:
+    image: "mrvautin/adminmongo"
+    ports:
+      - "1234:1234"

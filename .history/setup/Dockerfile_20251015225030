@@ -1,0 +1,6 @@
+FROM mongo
+
+# Creation du dossier de travail
+WORKDIR /usr/src/configs
+
+#

@@ -1,0 +1,11 @@
+version: '3'
+services:
+  principal_a:
+    image: "mongo-start"
+    build: ./principal_a
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./principal_a/data:/data/db
+    
+    command: ["mongod", "--config", "/etc/mongo.conf"]

@@ -1,0 +1,6 @@
+FROM mongo
+
+ # Repertoire configuration
+ WORKDIR /usr/src/configs
+
+ 

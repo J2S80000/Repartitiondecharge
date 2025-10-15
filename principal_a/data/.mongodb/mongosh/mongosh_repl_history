@@ -1,0 +1,9 @@
+db.books.updateMany({ "categories":"Java" }, { $set: { editor: "O'Reilly Media" } })
+show collections
+db.paris.updateMany({ "categories":"Java" }, { $set: { editor: "O'Reilly Media" } })
+use paris
+ls
+db
+db.paris.updateMany({ "categories":"Java" }, { $set: { editor: "O'Reilly Media" } })
+db.books.updateMany({ "categories":"Java" }, { $set: { editor: "O'Reilly Media" } })
+db.books.updateMany({ "publishedDate": { $lte: ISODate("2000-01-01T08:00:00.000Z") } }, { $set: { status: "OLD" } })

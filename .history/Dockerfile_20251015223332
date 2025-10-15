@@ -1,0 +1,7 @@
+FROM mongo
+
+ # Repertoire configuration
+ WORKDIR /usr/src/configs
+
+ # Copie fichier de config
+ COPY mongo

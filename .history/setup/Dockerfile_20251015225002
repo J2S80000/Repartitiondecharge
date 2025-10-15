@@ -1,0 +1,4 @@
+FROM mongo
+
+# Creation du dossier de travail
+Wo

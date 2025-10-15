@@ -1,0 +1,40 @@
+version: '3'
+services:
+  principal_a:
+    image: "mongo-start"
+    build: ./principal_a
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./principal_a/data:/data/db
+    depends_on:
+      - "secondaire_a_1"
+      - "secondaire_a_2"
+      - "secondaire_a_3"
+
+  secondaire_a_1:
+    image: "mongo"
+    command: --replSet replSet_a --smallfiles --oplogSize 128
+    ports:
+      - "27018:27017"
+    volumes:
+      - ./secondaire_a_1/data:/data/db
+  
+  secondaire_a_2:
+    image: "mongo"
+    command: --replSet replSet_a --smallfiles --oplogSize 128
+    ports:
+      - "27019:27017"
+    volumes:
+      - ./secondaire_a_2/data:/data/db
+
+  secondaire_a_3:
+    image: "mongo"
+    command: --replSet replSet_a --smallfiles --oplogSize 128
+    ports:
+      - "27020:27017"
+    volumes:
+      - ./secondaire_a_3/data:/data/d
+  
+  setup-rs:
+    

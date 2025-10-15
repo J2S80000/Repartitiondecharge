@@ -1,0 +1,374 @@
+services:
+  # ========================================
+  # REPLICA SET A (Shard A)
+  # ========================================
+  principal_a:
+    image: "mongo"
+    container_name: principal_a
+    command: --shardsvr --replSet replSet_a --port 27017 --bind_ip_all
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./principal_a/data:/data/db
+    networks:
+      - mongo-cluster
+
+  secondaire_a_1:
+    image: "mongo"
+    container_name: secondaire_a_1
+    command: --shardsvr --replSet replSet_a --port 27017 --bind_ip_all
+    ports:
+      - "27018:27017"
+    volumes:
+      - ./secondaire_a_1/data:/data/db
+    networks:
+      - mongo-cluster
+  
+  secondaire_a_2:
+    image: "mongo"
+    container_name: secondaire_a_2
+    command: --shardsvr --replSet replSet_a --port 27017 --bind_ip_all
+    ports:
+      - "27019:27017"
+    volumes:
+      - ./secondaire_a_2/data:/data/db
+    networks:
+      - mongo-cluster
+
+  secondaire_a_3:
+    image: "mongo"
+    container_name: secondaire_a_3
+    command: --shardsvr --replSet replSet_a --port 27017 --bind_ip_all
+    ports:
+      - "27020:27017"
+    volumes:
+      - ./secondaire_a_3/data:/data/db
+    networks:
+      - mongo-cluster
+
+  # ========================================
+  # REPLICA SET B (Shard B)
+  # ========================================
+  principal_b:
+    image: "mongo"
+    container_name: principal_b
+    command: --shardsvr --replSet replSet_b --port 27017 --bind_ip_all
+    ports:
+      - "27021:27017"
+    volumes:
+      - ./principal_b/data:/data/db
+    networks:
+      - mongo-cluster
+
+  secondaire_b_1:
+    image: "mongo"
+    container_name: secondaire_b_1
+    command: --shardsvr --replSet replSet_b --port 27017 --bind_ip_all
+    ports:
+      - "27022:27017"
+    volumes:
+      - ./secondaire_b_1/data:/data/db
+    networks:
+      - mongo-cluster
+  
+  secondaire_b_2:
+    image: "mongo"
+    container_name: secondaire_b_2
+    command: --shardsvr --replSet replSet_b --port 27017 --bind_ip_all
+    ports:
+      - "27023:27017"
+    volumes:
+      - ./secondaire_b_2/data:/data/db
+    networks:
+      - mongo-cluster
+
+  secondaire_b_3:
+    image: "mongo"
+    container_name: secondaire_b_3
+    command: --shardsvr --replSet replSet_b --port 27017 --bind_ip_all
+    ports:
+      - "27024:27017"
+    volumes:
+      - ./secondaire_b_3/data:/data/db
+    networks:
+      - mongo-cluster
+
+  # ========================================
+  # REPLICA SET C (Shard C)
+  # ========================================
+  principal_c:
+    image: "mongo"
+    container_name: principal_c
+    command: --shardsvr --replSet replSet_c --port 27017 --bind_ip_all
+    ports:
+      - "27025:27017"
+    volumes:
+      - ./principal_c/data:/data/db
+    networks:
+      - mongo-cluster
+
+  secondaire_c_1:
+    image: "mongo"
+    container_name: secondaire_c_1
+    command: --shardsvr --replSet replSet_c --port 27017 --bind_ip_all
+    ports:
+      - "27026:27017"
+    volumes:
+      - ./secondaire_c_1/data:/data/db
+    networks:
+      - mongo-cluster
+  
+  secondaire_c_2:
+    image: "mongo"
+    container_name: secondaire_c_2
+    command: --shardsvr --replSet replSet_c --port 27017 --bind_ip_all
+    ports:
+      - "27027:27017"
+    volumes:
+      - ./secondaire_c_2/data:/data/db
+    networks:
+      - mongo-cluster
+
+  secondaire_c_3:
+    image: "mongo"
+    container_name: secondaire_c_3
+    command: --shardsvr --replSet replSet_c --port 27017 --bind_ip_all
+    ports:
+      - "27028:27017"
+    volumes:
+      - ./secondaire_c_3/data:/data/db
+    networks:
+      - mongo-cluster
+
+  # ========================================
+  # CONFIG SERVER (Historique)
+  # ========================================
+  historique_1:
+    image: "mongo"
+    container_name: historique_1
+    command: --configsvr --replSet configReplSet --port 27019 --bind_ip_all
+    ports:
+      - "27030:27019"
+    volumes:
+      - ./historique_1/data:/data/db
+    networks:
+      - mongo-cluster
+
+  historique_2:
+    image: "mongo"
+    container_name: historique_2
+    command: --configsvr --replSet configReplSet --port 27019 --bind_ip_all
+    ports:
+      - "27031:27019"
+    volumes:
+      - ./historique_2/data:/data/db
+    networks:
+      - mongo-cluster
+
+  historique_3:
+    image: "mongo"
+    container_name: historique_3
+    command: --configsvr --replSet configReplSet --port 27019 --bind_ip_all
+    ports:
+      - "27032:27019"
+    volumes:
+      - ./historique_3/data:/data/db
+    networks:
+      - mongo-cluster
+
+  # ========================================
+  # ROUTEURS MONGOS
+  # ========================================
+  routeur_1:
+    image: "mongo"
+    container_name: routeur_1
+    command: mongos --configdb configReplSet/historique_1:27019,historique_2:27019,historique_3:27019 --bind_ip_all --port 27017
+    ports:
+      - "27040:27017"
+    depends_on:
+      - historique_1
+      - historique_2
+      - historique_3
+    networks:
+      - mongo-cluster
+
+  routeur_2:
+    image: "mongo"
+    container_name: routeur_2
+    command: mongos --configdb configReplSet/historique_1:27019,historique_2:27019,historique_3:27019 --bind_ip_all --port 27017
+    ports:
+      - "27041:27017"
+    depends_on:
+      - historique_1
+      - historique_2
+      - historique_3
+    networks:
+      - mongo-cluster
+
+  # ========================================
+  # SCRIPTS D'INITIALISATION
+  # ========================================
+  setup-config:
+    image: "mongo"
+    container_name: setup-config
+    depends_on:
+      - historique_1
+      - historique_2
+      - historique_3
+    networks:
+      - mongo-cluster
+    restart: "no"
+    entrypoint: >
+      bash -c "
+      echo '=== Initialisation du Config Server (historique) ===' &&
+      until mongosh --host historique_1:27019 --eval 'db.adminCommand({ping:1})' --quiet > /dev/null 2>&1; do
+        echo 'Attente historique_1...' && sleep 2
+      done &&
+      echo 'Initialisation du replica set configReplSet...' &&
+      mongosh --host historique_1:27019 --eval '
+      rs.initiate({
+        _id: \"configReplSet\",
+        configsvr: true,
+        members: [
+          { _id: 0, host: \"historique_1:27019\" },
+          { _id: 1, host: \"historique_2:27019\" },
+          { _id: 2, host: \"historique_3:27019\" }
+        ]
+      })
+      ' &&
+      echo 'Config server initialisé avec succès !'
+      "
+  
+  setup-rs-a:
+    image: "mongo"
+    container_name: setup-rs-a
+    depends_on:
+      - principal_a
+      - secondaire_a_1
+      - secondaire_a_2
+      - secondaire_a_3
+    networks:
+      - mongo-cluster
+    restart: "no"
+    entrypoint: >
+      bash -c "
+      echo '=== Initialisation Replica Set A ===' &&
+      until mongosh --host principal_a:27017 --eval 'db.adminCommand({ping:1})' --quiet > /dev/null 2>&1; do
+        echo 'Attente principal_a...' && sleep 2
+      done &&
+      mongosh --host principal_a:27017 --eval '
+      rs.initiate({
+        _id: \"replSet_a\",
+        members: [
+          { _id: 0, host: \"principal_a:27017\", priority: 2 },
+          { _id: 1, host: \"secondaire_a_1:27017\", priority: 1 },
+          { _id: 2, host: \"secondaire_a_2:27017\", priority: 1 },
+          { _id: 3, host: \"secondaire_a_3:27017\", priority: 1 }
+        ]
+      })
+      ' &&
+      echo 'Replica Set A initialisé !'
+      "
+
+  setup-rs-b:
+    image: "mongo"
+    container_name: setup-rs-b
+    depends_on:
+      - principal_b
+      - secondaire_b_1
+      - secondaire_b_2
+      - secondaire_b_3
+    networks:
+      - mongo-cluster
+    restart: "no"
+    entrypoint: >
+      bash -c "
+      echo '=== Initialisation Replica Set B ===' &&
+      until mongosh --host principal_b:27017 --eval 'db.adminCommand({ping:1})' --quiet > /dev/null 2>&1; do
+        echo 'Attente principal_b...' && sleep 2
+      done &&
+      mongosh --host principal_b:27017 --eval '
+      rs.initiate({
+        _id: \"replSet_b\",
+        members: [
+          { _id: 0, host: \"principal_b:27017\", priority: 2 },
+          { _id: 1, host: \"secondaire_b_1:27017\", priority: 1 },
+          { _id: 2, host: \"secondaire_b_2:27017\", priority: 1 },
+          { _id: 3, host: \"secondaire_b_3:27017\", priority: 1 }
+        ]
+      })
+      ' &&
+      echo 'Replica Set B initialisé !'
+      "
+
+  setup-rs-c:
+    image: "mongo"
+    container_name: setup-rs-c
+    depends_on:
+      - principal_c
+      - secondaire_c_1
+      - secondaire_c_2
+      - secondaire_c_3
+    networks:
+      - mongo-cluster
+    restart: "no"
+    entrypoint: >
+      bash -c "
+      echo '=== Initialisation Replica Set C ===' &&
+      until mongosh --host principal_c:27017 --eval 'db.adminCommand({ping:1})' --quiet > /dev/null 2>&1; do
+        echo 'Attente principal_c...' && sleep 2
+      done &&
+      mongosh --host principal_c:27017 --eval '
+      rs.initiate({
+        _id: \"replSet_c\",
+        members: [
+          { _id: 0, host: \"principal_c:27017\", priority: 2 },
+          { _id: 1, host: \"secondaire_c_1:27017\", priority: 1 },
+          { _id: 2, host: \"secondaire_c_2:27017\", priority: 1 },
+          { _id: 3, host: \"secondaire_c_3:27017\", priority: 1 }
+        ]
+      })
+      ' &&
+      echo 'Replica Set C initialisé !'
+      "
+
+  setup-sharding:
+    image: "mongo"
+    container_name: setup-sharding
+    depends_on:
+      - routeur_1
+      - setup-config
+      - setup-rs-a
+      - setup-rs-b
+      - setup-rs-c
+    networks:
+      - mongo-cluster
+    restart: "no"
+    entrypoint: >
+      bash -c "
+      echo '=== Configuration du Sharding ===' &&
+      sleep 15 &&
+      until mongosh --host routeur_1:27017 --eval 'db.adminCommand({ping:1})' --quiet > /dev/null 2>&1; do
+        echo 'Attente routeur_1...' && sleep 2
+      done &&
+      echo 'Ajout des shards A, B, C...' &&
+      mongosh --host routeur_1:27017 --eval '
+      sh.addShard(\"replSet_a/principal_a:27017,secondaire_a_1:27017,secondaire_a_2:27017,secondaire_a_3:27017\");
+      sh.addShard(\"replSet_b/principal_b:27017,secondaire_b_1:27017,secondaire_b_2:27017,secondaire_b_3:27017\");
+      sh.addShard(\"replSet_c/principal_c:27017,secondaire_c_1:27017,secondaire_c_2:27017,secondaire_c_3:27017\");
+      ' &&
+      echo 'Sharding configuré avec succès !' &&
+      mongosh --host routeur_1:27017 --eval 'sh.status()'
+      "
+
+  adminmongo:
+    image: "mrvautin/adminmongo"
+    container_name: adminmongo
+    ports:
+      - "1234:1234"
+    networks:
+      - mongo-cluster
+
+networks:
+  mongo-cluster:
+    driver: bridge

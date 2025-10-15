@@ -1,0 +1,10 @@
+FROM mongo
+
+# Creation du dossier de travail
+WORKDIR /usr/src/configs
+
+# Install app depencencies
+COPY replicaSet.js .
+COPY setup.sh .
+
+CMD ["./setup.sh"]
