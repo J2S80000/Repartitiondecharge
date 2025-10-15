@@ -1,3 +1,0 @@
-db.books.updateMany({ "publishedDate": { $lte: ISODate("2000-01-01T08:00:00.000Z") } }, { $set: { status: "OLD" } })
-db.books.find({ "thumbnailUrl" : /^https/},{title:1,thumbnailUrl:1})
-use paris
