@@ -202,57 +202,237 @@ docker-compose logs -f principal_a
 
 ---
 
-## 🎯 Cas d'usage du sharding
+## ✅ TESTS ET VALIDATION
 
-### Quand utiliser cette architecture ?
+Cette section documente les tests réalisés pour valider le fonctionnement complet du cluster shardé.
 
-✅ **Avantages du sharding :**
-- Répartition horizontale des données (scalabilité)
-- Distribution géographique possible
-- Haute disponibilité (replica sets)
-- Tolérance aux pannes
-- Performance améliorée pour gros volumes
+### 📋 Test 1 : Import de données réelles (431 livres)
 
-📊 **Scénarios idéaux :**
-- Bases de données > 100 GB
-- Millions de documents
-- Trafic important nécessitant plusieurs serveurs
-- Besoin de distribution géographique
+**Objectif** : Démontrer la distribution automatique des données sur les 3 shards.
+
+#### Étape 1 : Activation du sharding sur la base
+```powershell
+docker exec routeur_1 mongosh --quiet --eval "sh.enableSharding('paris')"
+```
+
+#### Étape 2 : Sharding de la collection avec clé hashed
+```powershell
+docker exec routeur_1 mongosh --quiet --eval "sh.shardCollection('paris.books', {_id: 'hashed'})"
+```
+
+#### Étape 3 : Import des données VIA LE ROUTEUR
+```powershell
+# Copier le fichier JSON vers le routeur
+docker cp "C:\Users\jessy\Documents\books.json" routeur_1:/tmp/books.json
+
+# Importer via mongoimport
+docker exec routeur_1 mongoimport --db paris --collection books --file /tmp/books.json
+```
+
+**Résultat** :
+```
+2025-10-16T11:29:43.903+0000    connected to: mongodb://localhost/
+2025-10-16T11:29:43.997+0000    431 document(s) imported successfully. 0 document(s) failed to import.
+```
+
+⚠️ **IMPORTANT** : Toujours importer via le **routeur** (mongos), jamais directement sur un shard !
+
+#### Étape 4 : Vérification de la distribution des données
+```powershell
+docker exec routeur_1 mongosh --quiet --eval "use paris" --eval "db.books.getShardDistribution()"
+```
+
+**Résultat obtenu** :
+```
+Shard replSet_c :
+  data: '137KiB'
+  docs: 130 (30.16%)
+  chunks: 1
+
+Shard replSet_a :
+  data: '190KiB'
+  docs: 150 (34.80%)
+  chunks: 1
+
+Shard replSet_b :
+  data: '176KiB'
+  docs: 151 (35.03%)
+  chunks: 1
+
+Totals :
+  data: '505KiB'
+  docs: 431
+  chunks: 3
+```
+
+✅ **Validation** : Les 431 documents sont **équitablement répartis** sur les 3 shards (~33% chacun).
 
 ---
 
-## 🛠️ Configuration avancée
+### 🗄️ Test 2 : Vérification des Config Servers (Historique)
 
-### Changer la clé de sharding
+**Objectif** : Confirmer que les métadonnées du cluster sont bien enregistrées et répliquées sur les 3 config servers.
 
-```javascript
-// Exemple : sharding par pays
-sh.shardCollection("testdb.orders", { country: 1 })
-
-// Sharding par hash (distribution uniforme)
-sh.shardCollection("testdb.products", { _id: "hashed" })
-
-// Sharding composé (compound key)
-sh.shardCollection("testdb.logs", { userId: 1, timestamp: 1 })
+#### Vérification sur historique_1
+```powershell
+docker exec historique_1 mongosh --port 27019 --quiet --eval "use config" --eval "print('Bases shardees enregistrees:'); db.databases.find().forEach(d => print('  - ' + d._id + ' (primary: ' + d.primary + ')'))"
 ```
 
-### Configurer des zones (tag-aware sharding)
-
-```javascript
-// Affecter des tags aux shards
-sh.addShardTag("replSet_a", "EU")
-sh.addShardTag("replSet_b", "US")
-sh.addShardTag("replSet_c", "ASIA")
-
-// Définir des plages de données par zone
-sh.addTagRange(
-  "testdb.users",
-  { country: "FR" }, { country: "FR\xff" },
-  "EU"
-)
+**Résultat** :
 ```
+Bases shardees enregistrees:
+  - paris (primary: replSet_b)
+```
+
+#### Vérification sur historique_2
+```powershell
+docker exec historique_2 mongosh --port 27019 --quiet --eval "use config" --eval "print('Bases shardees enregistrees:'); db.databases.find().forEach(d => print('  - ' + d._id + ' (primary: ' + d.primary + ')'))"
+```
+
+**Résultat** :
+```
+Bases shardees enregistrees:
+  - paris (primary: replSet_b)
+```
+
+#### Vérification sur historique_3
+```powershell
+docker exec historique_3 mongosh --port 27019 --quiet --eval "use config" --eval "print('Bases shardees enregistrees:'); db.databases.find().forEach(d => print('  - ' + d._id + ' (primary: ' + d.primary + ')'))"
+```
+
+**Résultat** :
+```
+Bases shardees enregistrees:
+  - paris (primary: replSet_b)
+```
+
+✅ **Validation** : Les métadonnées sont **identiques sur les 3 config servers**, prouvant la réplication fonctionnelle.
+
+**Note** : `primary: replSet_b` signifie que replSet_b est le "primary shard" pour les collections **non shardées** de cette base. Cela n'affecte PAS la distribution des collections shardées comme `paris.books`.
 
 ---
+
+### 🔄 Test 3 : Failover automatique (Haute disponibilité)
+
+**Objectif** : Démontrer qu'en cas de panne du PRIMARY, un SECONDARY est automatiquement promu.
+
+#### État initial : principal_a est PRIMARY
+```powershell
+docker exec -it principal_a mongosh
+```
+
+**Résultat** :
+```
+Connecting to: mongodb://127.0.0.1:27017/?directConnection=true
+Using MongoDB: 8.0.13
+
+replSet_a [direct: primary] test>
+```
+
+✅ `principal_a` est bien PRIMARY du replica set `replSet_a`.
+
+#### Simulation de panne
+```powershell
+# Arrêter le container principal_a
+docker stop principal_a
+
+# Attendre l'élection (~10-15 secondes)
+Start-Sleep -Seconds 15
+```
+
+#### Vérification : un SECONDARY devient PRIMARY
+```powershell
+docker exec -it secondaire_a_1 mongosh
+```
+
+**Résultat après élection** :
+```
+Connecting to: mongodb://127.0.0.1:27017/?directConnection=true
+Using MongoDB: 8.0.13
+
+replSet_a [direct: primary] test>
+```
+
+✅ **Validation** : `secondaire_a_1` a été **automatiquement promu PRIMARY** !
+
+#### Vérification du statut du replica set
+```powershell
+docker exec secondaire_a_1 mongosh --eval "rs.status()" --quiet | Select-String "stateStr"
+```
+
+**Résultat attendu** :
+```
+stateStr: 'DOWN'       ← principal_a (arrêté)
+stateStr: 'PRIMARY'    ← secondaire_a_1 (nouveau PRIMARY)
+stateStr: 'SECONDARY'  ← secondaire_a_2
+stateStr: 'SECONDARY'  ← secondaire_a_3
+```
+
+#### Restauration
+```powershell
+# Redémarrer principal_a
+docker start principal_a
+
+# Il redeviendra SECONDARY automatiquement
+# (ou PRIMARY si vous le configurez avec priority plus élevée)
+```
+
+✅ **Conclusion** : Le cluster tolère la **panne d'un nœud par replica set** sans interruption de service.
+
+---
+
+### 📊 Test 4 : Requêtes via le routeur
+
+**Objectif** : Vérifier que les requêtes passent correctement par le routeur et interrogent les bons shards.
+
+#### Compter tous les documents
+```powershell
+docker exec routeur_1 mongosh --quiet --eval "use paris" --eval "db.books.countDocuments()"
+```
+
+**Résultat** : `431` (le routeur interroge les 3 shards et additionne)
+
+#### Rechercher un document spécifique
+```powershell
+docker exec routeur_1 mongosh --quiet --eval "use paris" --eval "db.books.findOne()"
+```
+
+**Résultat** : Retourne 1 document (le routeur va chercher sur UN seul shard grâce au hash de `_id`)
+
+#### Vérifier la présence des données sur chaque shard individuellement
+```powershell
+# Sur shard A
+docker exec principal_a mongosh --quiet --eval "use paris" --eval "db.books.countDocuments()"
+# Résultat : 150
+
+# Sur shard B
+docker exec principal_b mongosh --quiet --eval "use paris" --eval "db.books.countDocuments()"
+# Résultat : 151
+
+# Sur shard C
+docker exec principal_c mongosh --quiet --eval "use paris" --eval "db.books.countDocuments()"
+# Résultat : 130
+```
+
+✅ **Total** : 150 + 151 + 130 = **431 documents** ✓
+
+---
+
+### 🧪 Script de test automatique
+
+Exécutez le script PowerShell fourni pour tester automatiquement les config servers :
+
+```powershell
+.\test_historique.ps1
+```
+
+Ce script vérifie :
+- ✅ Statut des 3 config servers (historique_1/2/3)
+- ✅ État du replica set configReplSet (1 PRIMARY + 2 SECONDARY)
+- ✅ Présence des 3 shards dans les métadonnées
+- ✅ Collections du cluster dans `config` database
+- ✅ Réplication entre les config servers
+- ✅ Connectivité individuelle de chaque serveur
 
 ## 📚 Ressources
 
