@@ -201,6 +201,7 @@ docker-compose logs -f principal_a
 ```
 
 ---
+---
 
 ## ✅ TESTS ET VALIDATION
 
@@ -378,6 +379,110 @@ docker start principal_a
 ```
 
 ✅ **Conclusion** : Le cluster tolère la **panne d'un nœud par replica set** sans interruption de service.
+
+#### Test approfondi : Réplication et restrictions d'écriture
+
+**Contexte** : `principal_a` est arrêté, `secondaire_a_1` est devenu PRIMARY.
+
+##### 1. Vérifier les données sur le nouveau PRIMARY
+```powershell
+docker exec -it secondaire_a_1 mongosh
+```
+
+```javascript
+use paris
+db.books.countDocuments()
+// Résultat : 150
+```
+
+✅ Les **150 livres** du shard A sont toujours accessibles !
+
+##### 2. Vérifier la réplication sur les SECONDARY
+```powershell
+docker exec -it secondaire_a_2 mongosh
+```
+
+```javascript
+use paris
+db.books.countDocuments()
+// Résultat : 150
+```
+
+✅ Les données sont **parfaitement répliquées** sur tous les nœuds.
+
+##### 3. Afficher quelques livres
+```javascript
+db.books.find({}, { _id: 1, title: 1 }).limit(5)
+```
+
+**Résultat** :
+```javascript
+[
+  { _id: 29, title: 'jQuery in Action' },
+  { _id: 63, title: 'POJOs in Action' },
+  { _id: 67, title: 'Wicket in Action' },
+  { _id: 72, title: 'SCWCD Exam Study Kit Second Edition' },
+  { _id: 132, title: 'Up to Speed with Swing, Second Edition' }
+]
+```
+
+##### 4. Tentative de suppression sur un SECONDARY (❌ ÉCHOUE)
+```javascript
+// Toujours connecté sur secondaire_a_2 (SECONDARY)
+db.books.deleteOne({ title: "Wicket in Action" })
+```
+
+**Résultat** :
+```
+MongoServerError[NotWritablePrimary]: not primary
+```
+
+⚠️ **Règle importante** : Les **écritures sont INTERDITES** sur les SECONDARY !
+- Les SECONDARY sont en **lecture seule** (read-only)
+- Seul le PRIMARY accepte les écritures
+
+##### 5. Suppression réussie sur le PRIMARY
+```powershell
+# Se connecter au PRIMARY actuel (secondaire_a_1)
+docker exec -it secondaire_a_1 mongosh
+```
+
+```javascript
+use paris
+db.books.deleteOne({ title: "Wicket in Action" })
+```
+
+**Résultat** :
+```javascript
+{ acknowledged: true, deletedCount: 1 }
+```
+
+✅ Suppression réussie sur le PRIMARY !
+
+##### 6. Vérification du comptage après suppression
+```javascript
+db.books.countDocuments()
+// Résultat : 149 (150 - 1)
+```
+
+##### 7. Vérification de la réplication de la suppression
+```powershell
+docker exec -it secondaire_a_2 mongosh
+```
+
+```javascript
+use paris
+db.books.countDocuments()
+// Résultat : 149
+```
+
+✅ La **suppression est automatiquement répliquée** sur tous les SECONDARY !
+
+**Leçons apprises** :
+- 🔒 **Écriture** : Uniquement sur PRIMARY
+- 📖 **Lecture** : PRIMARY + tous les SECONDARY (avec `rs.secondaryOk()` si besoin)
+- 🔄 **Réplication** : Automatique et instantanée (quelques millisecondes)
+- 🚀 **Failover** : Promotion automatique d'un SECONDARY en PRIMARY
 
 ---
 
