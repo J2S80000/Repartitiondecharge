@@ -22,6 +22,9 @@ Difficultés rencontrées
    - Mise en place de sharding par clé composée ou hash pour certaines collections
    - Gestion des zones avec tag-aware sharding pour une distribution géographique simulée
 
+6. Evolution de mongo :
+   - Recherche personelle de sorte a trouver des alternatives a l'obsolescence de certaine fonctionalité mongo comme "mongo-start" pour les serveurs principaux
+
 
 Solutions misent en place 
 
@@ -70,3 +73,4 @@ https://www.mongodb.com/docs/manual/core/sharded-cluster-config-servers/
 Docker Compose Networking  
 https://docs.docker.com/compose/networking/  
 → Configuration des réseaux entre containers
+
