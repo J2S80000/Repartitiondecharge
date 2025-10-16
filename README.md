@@ -1,6 +1,20 @@
 # MongoDB Sharded Cluster - Architecture Complète
 
-## 📊 Vue d'ensemble de l'architecture
+## 📊 Table des matières
+
+- [Vue d'ensemble de l'architecture](#vue-densemble-de-larchitecture)
+- [Architecture détaillée](#architecture-détaillée)
+- [Composants du cluster](#composants-du-cluster)
+- [Démarrage du cluster](#démarrage-du-cluster)
+- [Commandes utiles](#commandes-utiles)
+- [Monitoring et diagnostic](#monitoring-et-diagnostic)
+- [Tests et validation](#tests-et-validation)
+- [Ressources](#ressources)
+- [Notes importantes](#notes-importantes)
+- [Dépannage](#dépannage)
+
+
+##  Vue d'ensemble de l'architecture
 
 Ce projet implémente un **cluster MongoDB shardé** complet avec:
 - **3 shards** (replica sets A, B, C) pour la répartition des données
@@ -10,7 +24,7 @@ Ce projet implémente un **cluster MongoDB shardé** complet avec:
 
 ---
 
-## 🏗️ Architecture détaillée
+##  Architecture détaillée
 
 ```
                     ┌─────────────┐     ┌─────────────┐
@@ -44,7 +58,7 @@ Ce projet implémente un **cluster MongoDB shardé** complet avec:
 
 ---
 
-## 📦 Composants du cluster
+##  Composants du cluster
 
 ### 🔷 Shard A (replSet_a)
 - **principal_a** → Port 27017 (PRIMARY)
@@ -78,7 +92,7 @@ Ce projet implémente un **cluster MongoDB shardé** complet avec:
 
 ---
 
-## 🚀 Démarrage du cluster
+##  Démarrage du cluster
 
 ### 1️⃣ Démarrer tous les services
 ```powershell
@@ -106,7 +120,7 @@ sh.getShards()      # Liste des shards
 
 ---
 
-## 📝 Commandes utiles
+##  Commandes utiles
 
 ### Se connecter aux différents composants
 
@@ -171,7 +185,7 @@ docker-compose down -v
 
 ---
 
-## 🔍 Monitoring et diagnostic
+##  Monitoring et diagnostic
 
 ### Vérifier l'état des replica sets
 
@@ -203,7 +217,7 @@ docker-compose logs -f principal_a
 ---
 ---
 
-## ✅ TESTS ET VALIDATION
+##  TESTS ET VALIDATION
 
 Cette section documente les tests réalisés pour valider le fonctionnement complet du cluster shardé.
 
@@ -270,7 +284,7 @@ Totals :
 
 ---
 
-### 🗄️ Test 2 : Vérification des Config Servers (Historique)
+###  Test 2 : Vérification des Config Servers (Historique)
 
 **Objectif** : Confirmer que les métadonnées du cluster sont bien enregistrées et répliquées sur les 3 config servers.
 
@@ -313,7 +327,7 @@ Bases shardees enregistrees:
 
 ---
 
-### 🔄 Test 3 : Failover automatique (Haute disponibilité)
+###  Test 3 : Failover automatique (Haute disponibilité)
 
 **Objectif** : Démontrer qu'en cas de panne du PRIMARY, un SECONDARY est automatiquement promu.
 
