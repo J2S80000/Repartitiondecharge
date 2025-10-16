@@ -1,0 +1,72 @@
+MongoDB Sharded Cluster - Historique des difficulés et solutions
+
+Difficultés rencontrées 
+
+1. Mise en place du cluster shardé complet :
+   - Comprendre l’architecture globale avec 3 shards (A, B, C), un serveur de configuration (configReplSet) et deux routeurs mongos
+   - Coordination du démarrage des replica sets et du config server dans le bon ordre pour éviter les erreurs de sharding
+
+2. Problèmes de ports et conflits :
+   - Certains ports (27017 à 27028) étaient déjà utilisés sur le système hôte
+   - Les containers Docker s'arrêtaient immédiatement si un port était occupé
+
+3. Initialisation du sharding :
+   - Les commandes `sh.enableSharding()` et `sh.shardCollection()` échouaient parfois avant que tous les shards ne soient correctement ajoutés
+   - Difficulté à répartir les données uniformément entre les shards
+
+4. Monitoring et diagnostic :
+   - Interprétation des statuts des replica sets via `rs.status()`
+   - Vérification de la distribution des données avec `db.users.getShardDistribution()`
+
+5. Configuration avancée :
+   - Mise en place de sharding par clé composée ou hash pour certaines collections
+   - Gestion des zones avec tag-aware sharding pour une distribution géographique simulée
+
+
+Solutions misent en place 
+
+1. Coordination du démarrage des services Docker :
+   - Démarrage dans l’ordre : config servers → shards → routeurs → AdminMongo
+   - Utilisation de `sleep` et de boucles `until mongosh ... ping` pour s’assurer que chaque service est prêt avant l’initialisation
+
+2. Gestion des ports :
+   - Vérification avec `netstat` pour identifier les ports libres
+   - Attribution de ports hôtes différents (27017 → 27028) pour chaque container
+
+3. Initialisation du sharding :
+   - Vérification de l’état des replica sets (`rs.status()`) avant d’ajouter chaque shard
+   - Ajout des shards via `sh.addShard("replSet_a/principal_a:27017,...")` sur le routeur `routeur_1`
+   - Activation du sharding sur les bases de test et création de collections shardées
+
+4. Monitoring et diagnostic :
+   - Logs Docker surveillés en temps réel avec `docker-compose logs -f`
+   - Vérification de la distribution des données et du statut du cluster shardé via `sh.status()`
+
+5. Configuration avancée réussie :
+   - Sharding par clé composée et par hash pour certaines collections (`users`, `orders`, `products`)
+   - Affectation de tags aux shards pour préparer un sharding géographique simulé (EU, US, ASIA)
+
+
+Composants correspondants dans le docker-compose 
+
+**Shard A (replSet_a)** : principal_a, secondaire_a_1 à secondaire_a_3
+- **Shard B (replSet_b)** : principal_b, secondaire_b_1 à secondaire_b_3
+- **Shard C (replSet_c)** : principal_c, secondaire_c_1 à secondaire_c_3
+- **Config Server (configReplSet)** : historique_1, historique_2, historique_3
+- **Routeurs mongos** : routeur_1, routeur_2
+- **Interface Web** : AdminMongo (port 1234)
+
+
+Sitographie et ressources utilisées 
+
+Creating a Mongo replicaset using docker: Mongo replicaset + Nodejs + Docker Compose  
+https://www.youtube.com/watch?v=mlw7vWISaF4  
+→ Comment déployer un serveur principal avec 2 serveurs secondaires. La vidéo est de 2018, certaines parties étaient obsolètes, corrigées grâce à la documentation officielle et à l’IA Claude 4.5
+
+MongoDB Config Servers  
+https://www.mongodb.com/docs/manual/core/sharded-cluster-config-servers/  
+→ Rôle et configuration des serveurs de configuration
+
+Docker Compose Networking  
+https://docs.docker.com/compose/networking/  
+→ Configuration des réseaux entre containers
