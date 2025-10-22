@@ -1,5 +1,9 @@
 # MongoDB Sharded Cluster - Architecture Complète
 
+## Jessy ALEXIS
+## Iraven CHENGUBRAYDOO
+## Clementine DOOH
+
 ## 📊 Table des matières
 
 - [Vue d'ensemble de l'architecture](#vue-densemble-de-larchitecture)
